@@ -1,62 +1,91 @@
 # 阅读助手 (Reading Assistant)
 
-[![Stellate](https://img.shields.io/badge/Powered%20by-Stellate-blue)](https://stellate.co)
+**阅读助手**是一款记录与管理个人阅读进度的应用。支持登录后云端同步书籍与进度、评分与简评、以及封面上传。
 
-**阅读助手**是一款智能工具，旨在提升您的阅读效率和体验。通过先进的 AI 技术，它可以帮助您快速理解、总结和分析文本内容。
+## ✨ 功能
 
-## ✨ 主要功能
+- 书籍管理：添加、编辑、删除书籍，状态与进度可视化
+- 评分与简评：读完后为书籍打分并添加简短评价
+- 封面上传：支持手动上传或通过 ISBN 自动抓取封面
+- 访客模式：无需登录即可本地体验（数据保存在浏览器）
 
-- **智能摘要**：一键生成任何文本的核心摘要，节省您的宝贵时间。
-- **关键信息提取**：自动识别并提取文章中的关键人物、地点、时间等信息。
-- **多语言支持**：支持多种语言的文本分析，打破语言障碍。
-- **划词翻译**：在阅读时随时选中单词或句子进行快速翻译。
-- **简洁的用户界面**：提供专注、无干扰的阅读环境。
-
-## 🚀 开始使用
+## 🚀 开发与运行
 
 ### 环境要求
+- [Node.js](https://nodejs.org/) (>= 18)
+- npm 或 yarn
 
-- [Node.js](https://nodejs.org/) (版本 >= 18.0.0)
-- [npm](https://www.npmjs.com/) 或 [yarn](https://yarnpkg.com/)
+### 本地启动
+1. 克隆仓库
+   ```bash
+   git clone https://github.com/redbanchk/ReadingAssistant.git
+   cd ReadingAssistant
+   ```
+2. 安装依赖
+   ```bash
+   npm install
+   ```
+3. 配置环境变量（前端）
+   在项目根目录创建 `ReadingAssistant/.env.local`，写入 Supabase 项目信息：
+   ```env
+   VITE_SUPABASE_URL=你的Supabase项目URL
+   VITE_SUPABASE_ANON_KEY=你的Supabase匿名Key
+   ```
+4. 启动开发服务器
+   ```bash
+   npm run dev
+   ```
+   打开 `http://localhost:3000`
 
-### 本地部署
+## 🔐 账号与登录
+- 注册：输入邮箱与密码创建账号
+- 登录：使用邮箱与密码直接登录
+- 若开启了“邮件确认”，首次注册需在邮箱中确认后才能登录（可在 Supabase 控制台关闭以实现注册即登录）
 
-1.  **克隆仓库**
-    ```bash
-    git clone https://github.com/redbanchk/ReadingAssistant.git
-    cd ReadingAssistant
-    ```
+## �️ Supabase 设置
 
-2.  **安装依赖**
-    ```bash
-    npm install
-    ```
+### 数据库表
+项目使用 `books` 表存储书籍信息，并开启 RLS。表结构与策略见 `ReadingAssistant/supabaseClient.ts` 顶部注释。
 
-3.  **配置环境变量**
-    在项目根目录下创建一个 `.env.local` 文件，并添加您的 Gemini API 密钥：
-    ```
-    GEMINI_API_KEY=YOUR_API_KEY
-    ```
+### 存储桶（封面）
+创建公开读取的 `covers` 存储桶用于封面文件：
+```sql
+insert into storage.buckets (id, name, public)
+values ('covers','covers', true)
+on conflict (id) do nothing;
 
-4.  **启动项目**
-    ```bash
-    npm run dev
-    ```
-    项目将在 `http://localhost:3000` 上运行。
+-- 公共读取
+do $$ begin
+  create policy "Public read covers" on storage.objects
+    for select using (bucket_id = 'covers');
+exception when duplicate_object then null; end $$;
+
+-- 登录用户上传/更新/删除自己文件
+do $$ begin
+  create policy "Authenticated upload covers" on storage.objects
+    for insert with check (bucket_id = 'covers' and auth.role() = 'authenticated');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create policy "Authenticated update own covers" on storage.objects
+    for update using (bucket_id = 'covers' and auth.uid() = owner)
+    with check (bucket_id = 'covers' and auth.uid() = owner);
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create policy "Authenticated delete own covers" on storage.objects
+    for delete using (bucket_id = 'covers' and auth.uid() = owner);
+exception when duplicate_object then null; end $$;
+```
+
+封面上传代码位置：`ReadingAssistant/components/BookForm.tsx:83–94`
 
 ## 🛠️ 技术栈
-
-- **前端**: [Next.js](https://nextjs.org/) - React 框架
-- **AI**: [Google Gemini](https://ai.google.dev/) - 提供强大的语言模型能力
-- **UI**: [Tailwind CSS](https://tailwindcss.com/) - 功能优先的 CSS 框架
-- **部署**: [Vercel](https://vercel.com/)
+- 前端：React + Vite
+- UI：Tailwind CSS
+- 后端服务：Supabase（Auth、Postgres、Storage）
+- 部署：Vercel
 
 ## 🤝 贡献
-
-我们欢迎任何形式的贡献！如果您有好的想法或发现了问题，请随时提交 [Issues](https://github.com/redbanchk/ReadingAssistant/issues) 或 Pull Requests。
-
-在提交代码前，请确保遵循项目的代码规范。
+欢迎提交 Issue 或 Pull Request。
 
 ## 📄 许可证
-
-本项目采用 [MIT License](LICENSE) 开源。
+本项目使用 [MIT License](LICENSE)。
