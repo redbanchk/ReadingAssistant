@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Book, BookStatus, ReminderFrequency, ReminderTime } from '../types';
-import { getCoverFromISBN } from '../utils/helpers';
+import { getCoverFromISBN, getPagesFromISBN } from '../utils/helpers';
 import { Loader2, Upload, ChevronLeft, Save, Lock } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
@@ -42,20 +42,28 @@ const BookForm: React.FC<BookFormProps> = ({ initialData, onSave, onCancel, isDe
 
   // ISBN Auto-fetch Logic
   useEffect(() => {
-    const fetchCover = async () => {
-      if (formData.isbn && formData.isbn.length >= 10 && !coverFile && !initialData?.cover_url) {
+    const fetchMeta = async () => {
+      if (formData.isbn && formData.isbn.length >= 10 && !coverFile) {
         setFetchingCover(true);
-        const url = await getCoverFromISBN(formData.isbn);
-        if (url) {
-          setFormData(prev => ({ ...prev, cover_url: url }));
-          setPreviewUrl(url);
+        // Cover
+        if (!initialData?.cover_url && !formData.cover_url) {
+          const url = await getCoverFromISBN(formData.isbn!);
+          if (url) {
+            setFormData(prev => ({ ...prev, cover_url: url }));
+            setPreviewUrl(url);
+          }
+        }
+        // Pages
+        const pages = await getPagesFromISBN(formData.isbn!);
+        if (pages && (!formData.total_pages || formData.total_pages === 0)) {
+          setFormData(prev => ({ ...prev, total_pages: pages }));
         }
         setFetchingCover(false);
       }
     };
 
     // Debounce slightly
-    const timer = setTimeout(fetchCover, 1000);
+    const timer = setTimeout(fetchMeta, 1000);
     return () => clearTimeout(timer);
   }, [formData.isbn, coverFile, initialData]);
 
@@ -180,7 +188,17 @@ const BookForm: React.FC<BookFormProps> = ({ initialData, onSave, onCancel, isDe
           
           <div>
             {/* Explicitly Optional Label */}
-            <label className="block text-sm font-medium text-slate-700 mb-1">ISBN <span className="text-slate-400 font-normal">(可选，填入后尝试自动获取封面)</span></label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              ISBN <span className="text-slate-400 font-normal">(可选，填入后自动获取封面并补全页数)</span>
+              <a
+                href={`https://book.douban.com/subject_search?search_text=${encodeURIComponent(formData.title || formData.isbn || '')}&cat=1001`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-2 text-xs text-blue-600 hover:underline"
+              >
+                豆瓣读书
+              </a>
+            </label>
             <div className="relative">
               <input
                 type="text"
