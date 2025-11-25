@@ -1,20 +1,62 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 阅读助手 (Reading Assistant)
 
-# Run and deploy your AI Studio app
+[![Stellate](https://img.shields.io/badge/Powered%20by-Stellate-blue)](https://stellate.co)
 
-This contains everything you need to run your app locally.
+**阅读助手**是一款智能工具，旨在提升您的阅读效率和体验。通过先进的 AI 技术，它可以帮助您快速理解、总结和分析文本内容。
 
-View your app in AI Studio: https://ai.studio/apps/drive/1d3Z-eqwOKx4R4T4tPLTpg0QaAQyheLNQ
+## ✨ 主要功能
 
-## Run Locally
+- **智能摘要**：一键生成任何文本的核心摘要，节省您的宝贵时间。
+- **关键信息提取**：自动识别并提取文章中的关键人物、地点、时间等信息。
+- **多语言支持**：支持多种语言的文本分析，打破语言障碍。
+- **划词翻译**：在阅读时随时选中单词或句子进行快速翻译。
+- **简洁的用户界面**：提供专注、无干扰的阅读环境。
 
-**Prerequisites:**  Node.js
+## 🚀 开始使用
 
+### 环境要求
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+- [Node.js](https://nodejs.org/) (版本 >= 18.0.0)
+- [npm](https://www.npmjs.com/) 或 [yarn](https://yarnpkg.com/)
+
+### 本地部署
+
+1.  **克隆仓库**
+    ```bash
+    git clone https://github.com/redbanchk/ReadingAssistant.git
+    cd ReadingAssistant
+    ```
+
+2.  **安装依赖**
+    ```bash
+    npm install
+    ```
+
+3.  **配置环境变量**
+    在项目根目录下创建一个 `.env.local` 文件，并添加您的 Gemini API 密钥：
+    ```
+    GEMINI_API_KEY=YOUR_API_KEY
+    ```
+
+4.  **启动项目**
+    ```bash
+    npm run dev
+    ```
+    项目将在 `http://localhost:3000` 上运行。
+
+## 🛠️ 技术栈
+
+- **前端**: [Next.js](https://nextjs.org/) - React 框架
+- **AI**: [Google Gemini](https://ai.google.dev/) - 提供强大的语言模型能力
+- **UI**: [Tailwind CSS](https://tailwindcss.com/) - 功能优先的 CSS 框架
+- **部署**: [Vercel](https://vercel.com/)
+
+## 🤝 贡献
+
+我们欢迎任何形式的贡献！如果您有好的想法或发现了问题，请随时提交 [Issues](https://github.com/redbanchk/ReadingAssistant/issues) 或 Pull Requests。
+
+在提交代码前，请确保遵循项目的代码规范。
+
+## 📄 许可证
+
+本项目采用 [MIT License](LICENSE) 开源。
