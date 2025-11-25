@@ -34,6 +34,14 @@ export const getPagesFromISBN = async (isbn: string): Promise<number | null> => 
       if (typeof pages === 'number') return pages;
     }
 
+    // Final fallback: Google Books (no key required)
+    const meta3 = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanIsbn}`);
+    if (meta3.ok) {
+      const data = await meta3.json();
+      const pages = data?.items?.[0]?.volumeInfo?.pageCount;
+      if (typeof pages === 'number') return pages;
+    }
+
     return null;
   } catch (error) {
     console.error("Error fetching pages:", error);
