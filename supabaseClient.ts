@@ -14,6 +14,7 @@ const supabaseAnonKey = (typeof import.meta !== 'undefined' && (import.meta as a
   || 'your-anon-key';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const SUPABASE_ANON_KEY = supabaseAnonKey;
 
 /* 
   Expected SQL Schema for this app to function:
