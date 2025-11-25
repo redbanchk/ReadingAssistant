@@ -4,8 +4,14 @@ import { createClient } from '@supabase/supabase-js';
 // For the purpose of this code generation, we assume they are available via process.env 
 // or the user must replace them.
 
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
+const supabaseUrl = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL)
+  || process.env.VITE_SUPABASE_URL
+  || process.env.REACT_APP_SUPABASE_URL
+  || 'https://your-project.supabase.co';
+const supabaseAnonKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_ANON_KEY)
+  || process.env.VITE_SUPABASE_ANON_KEY
+  || process.env.REACT_APP_SUPABASE_ANON_KEY
+  || 'your-anon-key';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
