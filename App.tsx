@@ -56,21 +56,27 @@ const App: React.FC = () => {
       return;
     }
 
-    // Real Mode: Fetch from Supabase
-    if (session) {
-      const { data, error } = await supabase
-        .from('books')
-        .select('*')
-        .order('created_at', { ascending: false });
+    // Real Mode: Fetch from Supabase (do not depend on local session state timing)
+    const { data, error } = await supabase
+      .from('books')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching books:', error);
-      } else {
-        setBooks(data as Book[] || []);
-      }
+    if (error) {
+      console.error('Error fetching books:', error);
+      setBooks([]);
+    } else {
+      setBooks((data as Book[]) || []);
     }
     setLoadingBooks(false);
   };
+
+  // Ensure books are fetched whenever session becomes available (e.g., after reload)
+  useEffect(() => {
+    if (session && !isDemo) {
+      fetchBooks();
+    }
+  }, [session]);
 
   const handleAddBook = () => {
     setEditingBook(undefined);
