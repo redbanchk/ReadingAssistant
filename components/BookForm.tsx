@@ -43,6 +43,18 @@ const BookForm: React.FC<BookFormProps> = ({ initialData, onSave, onCancel, isDe
     }
   }, [initialData]);
 
+  useEffect(() => {
+    const key = initialData?.id ? `draft:edit:${initialData.id}` : 'draft:add';
+    const saved = sessionStorage.getItem(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setFormData(prev => ({ ...prev, ...parsed }));
+        if (parsed.cover_url && !previewUrl) setPreviewUrl(parsed.cover_url);
+      } catch {}
+    }
+  }, [initialData]);
+
   // ISBN Auto-fetch Logic
   useEffect(() => {
     const fetchMeta = async () => {
@@ -78,6 +90,11 @@ const BookForm: React.FC<BookFormProps> = ({ initialData, onSave, onCancel, isDe
       setFormData(prev => ({ ...prev, cover_url: '' })); // Clear auto-fetched URL if manual upload
     }
   };
+
+  useEffect(() => {
+    const key = initialData?.id ? `draft:edit:${initialData.id}` : 'draft:add';
+    sessionStorage.setItem(key, JSON.stringify(formData));
+  }, [formData, initialData?.id]);
 
   const uploadCover = async (userId: string): Promise<string | null> => {
     if (!coverFile) return formData.cover_url || null;
@@ -160,6 +177,8 @@ const BookForm: React.FC<BookFormProps> = ({ initialData, onSave, onCancel, isDe
           }
       }
 
+      const key = initialData?.id ? `draft:edit:${initialData.id}` : 'draft:add';
+      sessionStorage.removeItem(key);
       onSave();
     } catch (err: any) {
       alert(`保存书籍出错: ${err.message}`);
@@ -168,10 +187,16 @@ const BookForm: React.FC<BookFormProps> = ({ initialData, onSave, onCancel, isDe
     }
   };
 
+  const handleCancelInternal = () => {
+    const key = initialData?.id ? `draft:edit:${initialData.id}` : 'draft:add';
+    sessionStorage.removeItem(key);
+    onCancel();
+  };
+
   return (
     <div className="max-w-2xl mx-auto p-4 bg-white min-h-screen sm:min-h-0 sm:mt-6 sm:rounded-lg sm:shadow-sm animate-fade-in">
       <div className="flex items-center mb-6">
-        <button onClick={onCancel} className="mr-4 p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors">
+        <button onClick={handleCancelInternal} className="mr-4 p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors">
           <ChevronLeft size={24} />
         </button>
         <h2 className="text-xl font-bold text-slate-800">{initialData ? '编辑书籍' : '添加新书'}</h2>

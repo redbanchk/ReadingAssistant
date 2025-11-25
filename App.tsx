@@ -16,6 +16,38 @@ const App: React.FC = () => {
   const [editingBook, setEditingBook] = useState<Book | undefined>(undefined);
   const [loadingBooks, setLoadingBooks] = useState(false);
 
+  useEffect(() => {
+    const savedDemo = localStorage.getItem('is_demo');
+    if (savedDemo === 'true') setIsDemo(true);
+
+    const savedView = sessionStorage.getItem('view');
+    if (savedView) setView(savedView as ViewState);
+
+    const savedEditing = sessionStorage.getItem('editingBook');
+    if (savedEditing) {
+      try {
+        const parsed = JSON.parse(savedEditing);
+        setEditingBook(parsed);
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem('view', view);
+  }, [view]);
+
+  useEffect(() => {
+    localStorage.setItem('is_demo', isDemo ? 'true' : 'false');
+  }, [isDemo]);
+
+  useEffect(() => {
+    if (editingBook) {
+      sessionStorage.setItem('editingBook', JSON.stringify(editingBook));
+    } else {
+      sessionStorage.removeItem('editingBook');
+    }
+  }, [editingBook]);
+
   // Auth Listener
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -30,7 +62,6 @@ const App: React.FC = () => {
       if (session) {
         setIsDemo(false);
         fetchBooks();
-        setView('list');
       } else if (!isDemo) {
         setBooks([]);
         setView('login');
