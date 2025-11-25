@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, Bell, Play } from 'lucide-react';
+import { LogOut, Bell } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 interface SettingsProps {
@@ -19,31 +19,6 @@ const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
     alert("在正式环境中，这将切换你数据库中的 '启用所有提醒' 开关。");
   };
 
-  const handleTriggerReminders = async () => {
-    try {
-      const { data: sessionRes } = await supabase.auth.getSession();
-      const token = sessionRes?.session?.access_token;
-      if (!token) {
-        alert('请先登录后再触发提醒函数（需要用户令牌）');
-        return;
-      }
-      const { data, error } = await supabase.functions.invoke('send-reminders', {
-        headers: {
-          'X-Force': 'true',
-          'Authorization': `Bearer ${token}`
-        },
-        body: {}
-      });
-      if (error) {
-        alert(`触发失败：${error.message}`);
-        return;
-      }
-      const count = (data as any)?.count ?? 0;
-      alert(`已触发提醒函数（调试模式），尝试发送 ${count} 封邮件，请查收并稍后在 Edge Functions 日志查看详情。`);
-    } catch (e: any) {
-      alert(`触发失败：${e?.message || String(e)}`);
-    }
-  };
 
   return (
     <div className="max-w-md mx-auto p-4 pt-8 animate-fade-in">
@@ -81,14 +56,7 @@ const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
           <span>退出登录</span>
         </button>
 
-        {/* Debug trigger */}
-        <button
-          onClick={handleTriggerReminders}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition-colors flex items-center justify-center space-x-2"
-        >
-          <Play size={18} />
-          <span>立即触发提醒（调试）</span>
-        </button>
+        
 
         <p className="text-center text-xs text-slate-300 pt-8">
           阅读助手 v1.0 <br/>
