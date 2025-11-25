@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { Loader2, Mail, ArrowRight, LogIn, User } from 'lucide-react';
+import { Loader2, Mail, ArrowRight, LogIn, User, Lock } from 'lucide-react';
 
 interface LoginProps {
   onGuestLogin: () => void;
@@ -11,6 +11,8 @@ const Login: React.FC<LoginProps> = ({ onGuestLogin }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [isRegister, setIsRegister] = useState(false); // Controls the View Mode
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,20 +20,21 @@ const Login: React.FC<LoginProps> = ({ onGuestLogin }) => {
     setMessage('');
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: window.location.origin,
-        },
-      });
-
-      if (error) throw error;
-      
-      setMessage(
-        isRegister 
-          ? '注册验证链接已发送！请查收邮件完成注册。' 
-          : '登录链接已发送！请查收邮件进入应用。'
-      );
+      if (isRegister) {
+        if (password.length < 6) {
+          throw new Error('密码至少 6 位');
+        }
+        if (password !== confirmPassword) {
+          throw new Error('两次输入的密码不一致');
+        }
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        setMessage('注册成功，请使用邮箱和密码登录。');
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        setMessage('登录成功');
+      }
     } catch (error: any) {
       alert(error.error_description || error.message);
     } finally {
@@ -58,8 +61,8 @@ const Login: React.FC<LoginProps> = ({ onGuestLogin }) => {
           </h1>
           <p className="text-slate-500 text-sm mt-2">
             {isRegister 
-              ? '开启你的阅读记录之旅。' 
-              : '输入邮箱以访问你的书架。'}
+              ? '设置邮箱与密码以创建账户。' 
+              : '使用邮箱和密码登录你的书架。'}
           </p>
         </div>
 
@@ -92,8 +95,9 @@ const Login: React.FC<LoginProps> = ({ onGuestLogin }) => {
              </div>
              <div>{message}</div>
           </div>
-        ) : (
-          <form onSubmit={handleAuth} className="space-y-5">
+        ) : null}
+
+        <form onSubmit={handleAuth} className="space-y-5">
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
                 邮箱地址
@@ -113,6 +117,46 @@ const Login: React.FC<LoginProps> = ({ onGuestLogin }) => {
               </div>
             </div>
 
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                密码
+              </label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-slate-600 transition-colors">
+                  <Lock size={18} />
+                </div>
+                <input
+                  type="password"
+                  required
+                  placeholder={isRegister ? '至少 6 位' : '请输入密码'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition-all placeholder:text-slate-400"
+                />
+              </div>
+            </div>
+
+            {isRegister && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                  确认密码
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-slate-600 transition-colors">
+                    <Lock size={18} />
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    placeholder="再次输入密码"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition-all placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
@@ -131,7 +175,6 @@ const Login: React.FC<LoginProps> = ({ onGuestLogin }) => {
               )}
             </button>
           </form>
-        )}
         
         {!message && (
              <div className="mt-6 text-center space-y-4">
