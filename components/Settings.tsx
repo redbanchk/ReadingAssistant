@@ -21,10 +21,18 @@ const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
 
   const handleTriggerReminders = async () => {
     try {
+      const { data: sessionRes } = await supabase.auth.getSession();
+      const token = sessionRes?.session?.access_token;
+      if (!token) {
+        alert('请先登录后再触发提醒函数（需要用户令牌）');
+        return;
+      }
       const { data, error } = await supabase.functions.invoke('send-reminders', {
         headers: {
-          'X-Force': 'true'
-        }
+          'X-Force': 'true',
+          'Authorization': `Bearer ${token}`
+        },
+        body: {}
       });
       if (error) {
         alert(`触发失败：${error.message}`);
