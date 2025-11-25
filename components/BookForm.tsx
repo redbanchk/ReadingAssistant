@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Book, BookStatus, ReminderFrequency, ReminderTime } from '../types';
+import { Book, BookStatus, ReminderMode } from '../types';
 import { getCoverFromISBN, getPagesFromISBN } from '../utils/helpers';
 import { Loader2, Upload, ChevronLeft, Save, Lock } from 'lucide-react';
 import { supabase } from '../supabaseClient';
@@ -25,8 +25,11 @@ const BookForm: React.FC<BookFormProps> = ({ initialData, onSave, onCancel, isDe
     rating: 0,
     review: '',
     reminder_enabled: false,
-    reminder_frequency: ReminderFrequency.WEEKLY,
-    reminder_time: ReminderTime.PM7,
+    reminder_mode: 'daily',
+    reminder_interval_days: 1,
+    reminder_days_of_week: [1],
+    reminder_hour: 19,
+    reminder_minute: 0,
     cover_url: '',
   });
 
@@ -121,6 +124,10 @@ const BookForm: React.FC<BookFormProps> = ({ initialData, onSave, onCancel, isDe
         user_id: userId,
         cover_url: finalCoverUrl,
         rating: formData.rating || 0,
+        reminder_hour: formData.reminder_hour ?? 19,
+        reminder_minute: formData.reminder_minute ?? 0,
+        reminder_interval_days: formData.reminder_interval_days ?? null,
+        reminder_days_of_week: formData.reminder_days_of_week ?? null,
       };
 
       if (isDemo) {
@@ -196,7 +203,7 @@ const BookForm: React.FC<BookFormProps> = ({ initialData, onSave, onCancel, isDe
                 rel="noopener noreferrer"
                 className="ml-2 text-xs text-blue-600 hover:underline"
               >
-                豆瓣读书
+                您可以在“豆瓣读书”中查询
               </a>
             </label>
             <div className="relative">
@@ -356,31 +363,81 @@ const BookForm: React.FC<BookFormProps> = ({ initialData, onSave, onCancel, isDe
                 </div>
 
                 {formData.reminder_enabled && (
-                <div className="grid grid-cols-2 gap-4 animate-fade-in">
+                  <div className="space-y-4 animate-fade-in">
                     <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">频率</label>
-                    <select
-                        value={formData.reminder_frequency}
-                        onChange={e => setFormData({ ...formData, reminder_frequency: e.target.value as ReminderFrequency })}
+                      <label className="block text-xs font-medium text-slate-500 mb-1">频率</label>
+                      <select
+                        value={formData.reminder_mode as ReminderMode}
+                        onChange={e => setFormData({ ...formData, reminder_mode: e.target.value as ReminderMode })}
                         className="w-full p-2 text-sm border border-blue-200 rounded bg-white outline-none"
-                    >
-                        <option value={ReminderFrequency.WEEKLY}>每周 1 次</option>
-                        <option value={ReminderFrequency.THREE_DAYS}>每 3 天 1 次</option>
-                    </select>
+                      >
+                        <option value={'daily'}>每天一次</option>
+                        <option value={'every_x_days'}>每 X 天一次</option>
+                        <option value={'weekly'}>每周</option>
+                      </select>
                     </div>
-                    <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">时间</label>
-                    <select
-                        value={formData.reminder_time}
-                        onChange={e => setFormData({ ...formData, reminder_time: e.target.value as ReminderTime })}
-                        className="w-full p-2 text-sm border border-blue-200 rounded bg-white outline-none"
-                    >
-                        <option value={ReminderTime.PM7}>晚 7 点</option>
-                        <option value={ReminderTime.PM8}>晚 8 点</option>
-                        <option value={ReminderTime.PM9}>晚 9 点</option>
-                    </select>
+
+                    {formData.reminder_mode === 'every_x_days' && (
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">间隔天数</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={formData.reminder_interval_days || 1}
+                          onChange={e => setFormData({ ...formData, reminder_interval_days: Math.max(1, parseInt(e.target.value) || 1) })}
+                          className="w-full p-2 text-sm border border-blue-200 rounded bg-white outline-none"
+                        />
+                      </div>
+                    )}
+
+                    {formData.reminder_mode === 'weekly' && (
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-2">选择周几</label>
+                        <div className="grid grid-cols-7 gap-2">
+                          {[1,2,3,4,5,6,7].map(d => (
+                            <label key={d} className="flex items-center justify-center text-xs bg-white border border-blue-200 rounded py-1 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={(formData.reminder_days_of_week || []).includes(d)}
+                                onChange={e => {
+                                  const set = new Set(formData.reminder_days_of_week || []);
+                                  if (e.target.checked) set.add(d); else set.delete(d);
+                                  setFormData({ ...formData, reminder_days_of_week: Array.from(set).sort() });
+                                }}
+                                className="mr-1"
+                              />
+                              {['一','二','三','四','五','六','日'][d-1]}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">小时 (0-23)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={23}
+                          value={formData.reminder_hour ?? 19}
+                          onChange={e => setFormData({ ...formData, reminder_hour: Math.min(23, Math.max(0, parseInt(e.target.value) || 0)) })}
+                          className="w-full p-2 text-sm border border-blue-200 rounded bg-white outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">分钟 (0-59)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={59}
+                          value={formData.reminder_minute ?? 0}
+                          onChange={e => setFormData({ ...formData, reminder_minute: Math.min(59, Math.max(0, parseInt(e.target.value) || 0)) })}
+                          className="w-full p-2 text-sm border border-blue-200 rounded bg-white outline-none"
+                        />
+                      </div>
                     </div>
-                </div>
+                  </div>
                 )}
             </div>
           </div>
