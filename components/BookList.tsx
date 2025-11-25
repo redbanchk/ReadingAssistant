@@ -64,6 +64,24 @@ const BookList: React.FC<BookListProps> = ({ books, onEdit, onRefresh, onAdd, is
     }
   };
 
+  const formatReminder = (book: Book) => {
+    const h = (book.reminder_hour ?? 19).toString().padStart(2, '0');
+    const m = (book.reminder_minute ?? 0).toString().padStart(2, '0');
+    const time = `${h}:${m}`;
+    const mode = (book.reminder_mode as any) || 'daily';
+    if (mode === 'every_x_days') {
+      const interval = book.reminder_interval_days ?? 1;
+      return `每 ${interval} 天 ${time}`;
+    }
+    if (mode === 'weekly') {
+      const days = book.reminder_days_of_week ?? [];
+      const map: Record<number, string> = {1:'周一',2:'周二',3:'周三',4:'周四',5:'周五',6:'周六',7:'周日'};
+      const label = days.length ? days.map(d => map[d]).join('、') : '';
+      return `每周${label ? label + ' ' : ''}${time}`;
+    }
+    return `每天 ${time}`;
+  };
+
   // Helper to calculate percentage
   const getProgressPercentage = (book: Book) => {
       if (book.status === BookStatus.FINISHED) return 100;
@@ -221,8 +239,8 @@ const BookList: React.FC<BookListProps> = ({ books, onEdit, onRefresh, onAdd, is
                           添加于 {new Date(book.created_at).toLocaleDateString()}
                       </span>
                       {book.reminder_enabled && book.status !== BookStatus.FINISHED && (
-                          <span className="flex items-center text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide">
-                              提醒开启
+                          <span className="flex items-center text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-[10px] font-medium">
+                              {formatReminder(book)} 提醒
                           </span>
                       )}
                   </div>
