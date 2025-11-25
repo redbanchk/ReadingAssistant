@@ -1,0 +1,5 @@
+{
+  "name": "阅读助手",
+  "description": "一个极简、私密的个人阅读清单管理工具，带有邮件督促功能。",
+  "requestFramePermissions": []
+}
