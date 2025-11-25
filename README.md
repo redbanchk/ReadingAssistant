@@ -42,7 +42,7 @@
 - 登录：使用邮箱与密码直接登录
 - 若开启了“邮件确认”，首次注册需在邮箱中确认后才能登录（可在 Supabase 控制台关闭以实现注册即登录）
 
-## �️ Supabase 设置
+## ⚙️ Supabase 设置
 
 ### 数据库表
 项目使用 `books` 表存储书籍信息，并开启 RLS。表结构与策略见 `ReadingAssistant/supabaseClient.ts` 顶部注释。
@@ -77,6 +77,53 @@ exception when duplicate_object then null; end $$;
 ```
 
 封面上传代码位置：`ReadingAssistant/components/BookForm.tsx:83–94`
+
+## 📧 邮件提醒功能
+
+### Edge Function
+- 位置：`supabase/functions/send-reminders/index.ts`
+- 行为：每次调用按上海时区判断是否“到达设定时分”，满足策略后发送邮件并更新 `last_reminded_at` 去重。
+- Secrets（在 Supabase Functions → Secrets 配置）：
+  - `RESEND_API_KEY`（必填）
+  - `EMAIL_FROM`（可选，默认 `onboarding@resend.dev`）
+  - `EMAIL_FROM_NAME`（可选，默认 `Reading Assistant`）
+- 鉴权：`verify_jwt = true`，平台或带 `Authorization: Bearer <token>` 的请求可调用。
+
+### 定时触发（两种方案）
+1) Dashboard 的 Schedules（推荐，若界面已开放）：为 `send-reminders` 添加 `* * * * *`（每分钟）。
+2) 数据库侧后备调度（无 Schedules 时使用）：在 SQL 编辑器执行，确保携带认证头：
+   ```sql
+   create extension if not exists pg_cron;
+   create extension if not exists pg_net;
+   select cron.schedule('readassistant_send_reminders_every_minute', '* * * * *', $$
+     select net.http_post(
+       url := 'https://<PROJECT_ID>.supabase.co/functions/v1/send-reminders',
+       headers := '{"Content-Type":"application/json","Authorization":"Bearer <ANON_KEY>"}',
+       body := '{}'::jsonb
+     );
+   $$);
+   ```
+   - `<PROJECT_ID>`：项目 ID（例如 `yqyosawsesrjhfvfdcws`）
+   - `<ANON_KEY>`：在 `Settings → API` 获取，作为 Bearer 令牌用于函数鉴权
+
+### 字段与策略约定
+- `reminder_enabled:boolean`
+- `reminder_mode:text`（`daily` / `every_x_days` / `weekly`）
+- `reminder_hour:int`、`reminder_minute:int`
+- `reminder_interval_days:int`（仅 `every_x_days`）
+- `reminder_days_of_week:int[]`（仅 `weekly`；1–7 表示周一到周日）
+- `last_reminded_at:timestamptz`（发送成功后更新）
+- 策略：到达设定时分后，当天只发一次；`weekly` 仅在匹配星期；`every_x_days` 按自然日间隔。
+
+### 联调与验证
+- 手动触发（用于测试）：
+  ```bash
+  curl --request POST 'https://<PROJECT_ID>.supabase.co/functions/v1/send-reminders' \
+    --header 'Authorization: Bearer <ANON_KEY>' \
+    --header 'Content-Type: application/json' \
+    --data '{}'
+  ```
+- 在 `Edge Functions → Invocations` 观察每分钟的 `POST | 200`；到点后检查 `books.last_reminded_at` 更新与邮件实际送达。
 
 ## 🛠️ 技术栈
 - 前端：React + Vite
