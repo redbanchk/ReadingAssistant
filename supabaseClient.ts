@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from './supabaseTypes';
 
 // NOTE: In a real deployment, these should be environment variables.
 // For the purpose of this code generation, we assume they are available via process.env 
@@ -13,11 +14,11 @@ const supabaseAnonKey = (typeof import.meta !== 'undefined' && (import.meta as a
   || process.env.REACT_APP_SUPABASE_ANON_KEY
   || 'your-anon-key';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 export const SUPABASE_ANON_KEY = supabaseAnonKey;
 
 /* 
-  Expected SQL Schema for this app to function:
+  Expected SQL Schema for this app to function (simplified):
 
   create table books (
     id uuid default gen_random_uuid() primary key,
@@ -32,10 +33,16 @@ export const SUPABASE_ANON_KEY = supabaseAnonKey;
     
     rating int,
     review text,
-    reminder_frequency text,
-    reminder_time text,
     reminder_enabled boolean default false,
-    created_at timestamptz default now()
+    created_at timestamptz default now(),
+    -- Reminder config (normalized)
+    reminder_mode text check (reminder_mode in ('daily','every_x_days','weekly')),
+    reminder_hour int,
+    reminder_minute int,
+    reminder_interval_days int,
+    reminder_days_of_week int[],
+    last_reminded_at timestamptz,
+    reminded_on_date date
   );
 
   -- Enable RLS
@@ -45,5 +52,8 @@ export const SUPABASE_ANON_KEY = supabaseAnonKey;
   create policy "Users can update their own books" on books for update using (auth.uid() = user_id);
   create policy "Users can delete their own books" on books for delete using (auth.uid() = user_id);
   
+  -- Views to observe daily status:
+  -- v_user_book_reminders, v_reminders_today, v_reminder_logs_recent
+
   -- Storage Bucket 'covers' needs to be created and public readable.
 */
